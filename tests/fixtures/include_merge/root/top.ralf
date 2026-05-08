@@ -1,0 +1,27 @@
+// 顶层：显式 source 外置库；`enum` 等花括号保留在 field 内
+source "extra_blocks.ralf";
+
+block soc {
+  bytes 8;
+  register CORE_STAT @0 {
+    bytes 4;
+    field ver @0 {
+      bits 8;
+      access ro;
+      reset 'h12;
+    }
+    field patch @8 {
+      bits 8;
+      access ro;
+    }
+  }
+  register ALARM @'h20 {
+    bytes 4;
+    field WDT_EN @'h5 {
+      bits 1;
+      reset 'h0;
+      access rw;
+      enum { ENABLE = 1, DISABLE = 0 };
+    }
+  }
+}

@@ -1,0 +1,57 @@
+// Golden RALF：常见语法（block/register/field、bytes、reset、访问属性、位宽字面量）。
+// 说明：ralf_model 中带 { 的 block 不可写作「block 名 @addr {」，故 bank 用完整偏移寄存器表示。
+block demo_soc {
+  bytes 4;
+
+  register CTRL @0 {
+    bytes 4;
+    field ena {}
+    field mode @8 {
+      bits 4;
+      access rw;
+      reset 'h3;
+    }
+    field flags @16 {
+      bits 8;
+      access ro;
+      reset 8'hAB;
+    }
+  }
+
+  register STAT @'h10 {
+    bytes 4;
+    field cnt @0 {
+      bits 16;
+      access rw;
+      reset 16'h0;
+    }
+    field ovf @31 {
+      bits 1;
+      access rw;
+      volatile true;
+    }
+  }
+
+  register SLOT_A @'h100 {
+    bytes 4;
+    field word @0 {
+      bits 32;
+      access rw;
+      reset 32'hDEAD_BEEF;
+    }
+  }
+
+  register SLOT_B @'h104 {
+    bytes 4;
+    field nibble @0 {
+      bits 4;
+      access wo;
+      reset 4'b1010;
+    }
+    field pad @4 {
+      bits 28;
+      access rw;
+      reset 0;
+    }
+  }
+}

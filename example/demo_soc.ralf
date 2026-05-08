@@ -1,0 +1,56 @@
+// 示例：与 tests/fixtures/demo_soc.ralf 对齐（ralf_model 可解析子集）。
+block demo_soc {
+  bytes 4;
+
+  register CTRL @0 {
+    bytes 4;
+    field ena {}
+    field mode @8 {
+      bits 4;
+      access rw;
+      reset 'h3;
+    }
+    field flags @16 {
+      bits 8;
+      access ro;
+      reset 8'hAB;
+    }
+  }
+
+  register STAT @'h10 {
+    bytes 4;
+    field cnt @0 {
+      bits 16;
+      access rw;
+      reset 16'h0;
+    }
+    field ovf @31 {
+      bits 1;
+      access rw;
+      volatile true;
+    }
+  }
+
+  register SLOT_A @'h100 {
+    bytes 4;
+    field word @0 {
+      bits 32;
+      access rw;
+      reset 32'hDEAD_BEEF;
+    }
+  }
+
+  register SLOT_B @'h104 {
+    bytes 4;
+    field nibble @0 {
+      bits 4;
+      access wo;
+      reset 4'b1010;
+    }
+    field pad @4 {
+      bits 28;
+      access rw;
+      reset 0;
+    }
+  }
+}

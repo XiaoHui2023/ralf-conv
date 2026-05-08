@@ -1,0 +1,27 @@
+// 被 include 的块：与 top 不同目录，需 -I 才能 source 到
+block telemetry {
+  bytes 4;
+  register EVT_CNT @0 {
+    bytes 4;
+    field cnt @0 {
+      bits 32;
+      access rw;
+      reset 32'h0;
+    }
+  }
+}
+
+block gpio {
+  bytes 4;
+  register PIN @0 {
+    bytes 4;
+    field dir @0 {
+      bits 16;
+      access rw;
+    }
+    field dat @16 {
+      bits 16;
+      access rw;
+    }
+  }
+}
