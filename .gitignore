@@ -41,3 +41,6 @@ example/output/
 Thumbs.db
 *.swp
 *.swo
+
+.cursor
+debug.bat

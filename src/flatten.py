@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from ralf_model.nodes import BlockNode, RalfDocument
+
+from ralf_conv.field_layout import field_bits_width, field_lsbs
+
+
+@dataclass
+class FieldFlat:
+    name: str
+    lsb: int
+    width: int
+
+
+@dataclass
+class RegisterFlat:
+    path: str
+    address: int
+    fields: list[FieldFlat] = field(default_factory=list)
+
+    def as_mapping(self) -> dict[str, Any]:
+        return {
+            "path": self.path,
+            "address": self.address,
+            "fields": [
+                {"name": ff.name, "lsb": ff.lsb, "width": ff.width} for ff in self.fields
+            ],
+        }
+
+
+def document_to_register_list(doc: RalfDocument) -> list[RegisterFlat]:
+    """将 `ralf_model` 文档树展开为扁平寄存器列表（层次路径 + 绝对字节地址 + 字段）。"""
+    out: list[RegisterFlat] = []
+    for root in doc.blocks:
+        _walk_block(root, prefix=(), ancestor_base=0, acc=out)
+    return out
+
+
+def _walk_block(
+    block: BlockNode,
+    *,
+    prefix: tuple[str, ...],
+    ancestor_base: int,
+    acc: list[RegisterFlat],
+) -> None:
+    scope = prefix + (block.name,)
+    my_base = ancestor_base + (block.base_address or 0)
+
+    for reg in block.registers:
+        if reg.declaration_only:
+            continue
+        path_str = ".".join((*scope, reg.name))
+        addr = my_base + (reg.offset_bytes or 0)
+        lsbs = field_lsbs(reg.fields)
+        fields_out = [
+            FieldFlat(
+                name=f.name,
+                lsb=lsbs[i],
+                width=field_bits_width(f),
+            )
+            for i, f in enumerate(reg.fields)
+        ]
+        acc.append(RegisterFlat(path=path_str, address=addr, fields=fields_out))
+
+    for sub in block.blocks:
+        _walk_block(sub, prefix=scope, ancestor_base=my_base, acc=acc)

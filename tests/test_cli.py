@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ralf_conv.cli import main
+from ralf_conv.__main__ import main
 
 FIXTURE_RALF = Path(__file__).resolve().parent / "fixtures" / "demo_soc.ralf"
 
@@ -13,7 +13,40 @@ def test_cli_writes_flat_json(tmp_path: Path) -> None:
     assert main(["-i", str(FIXTURE_RALF), "-o", str(out)]) == 0
     data = json.loads(out.read_text(encoding="utf-8"))
     assert isinstance(data, list)
-    assert any(item.get("路径") == "demo_soc.CTRL" for item in data)
+    assert any(item.get("path") == "demo_soc.CTRL" for item in data)
+
+
+def test_cli_writes_hierarchical_json(tmp_path: Path) -> None:
+    out = tmp_path / "tree.json"
+    assert (
+        main(
+            [
+                "--format",
+                "hierarchical",
+                "-i",
+                str(FIXTURE_RALF),
+                "-o",
+                str(out),
+            ]
+        )
+        == 0
+    )
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert isinstance(data, list)
+    assert len(data) == 1
+    root = data[0]
+    assert root.get("name") == "demo_soc"
+    assert root.get("path") == "demo_soc"
+    assert root.get("baseAddress") == 0
+    assert root.get("addressUnitBits") == 8
+    assert "addressBlocks" in root and "registers" in root
+    names = {r["name"] for r in root["registers"]}
+    assert names >= {"CTRL", "STAT"}
+    ctrl = next(r for r in root["registers"] if r["name"] == "CTRL")
+    assert ctrl["addressOffset"] == 0
+    assert ctrl["size"] == 32
+    assert ctrl["fields"][0]["bitOffset"] == 0
+    assert ctrl["fields"][0]["bitWidth"] == 1
 
 
 def test_cli_rejects_non_ralf_input(tmp_path: Path) -> None:
@@ -44,6 +77,6 @@ def test_cli_pass_include_dirs(tmp_path: Path) -> None:
     )
     assert rc == 0
     data = json.loads(out.read_text(encoding="utf-8"))
-    paths = {item["路径"] for item in data}
+    paths = {item["path"] for item in data}
     assert "soc.CORE_STAT" in paths
     assert "telemetry.EVT_CNT" in paths

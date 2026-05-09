@@ -1,6 +1,98 @@
 from __future__ import annotations
 
-from ralf_conv.cli import main
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from ralf_model import RalfError, load_ralf_file
+
+from .flatten import document_to_register_list
+from .hierarchy import document_to_block_forest
+
+
+def _make_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="ralf-conv",
+        description="使用 ralf_model 解析 RALF 并输出 JSON（扁平列表或 block 层次结构）。",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "示例:\n"
+            "  python -m ralf_conv -i chip.ralf -o chip.json\n"
+            "  python -m ralf_conv --format hierarchical -i top.ralf -o tree.json\n"
+            "  python -m ralf_conv -i top.ralf -o out.json -I ./inc -I ./lib\n"
+        ),
+    )
+    p.add_argument(
+        "-i",
+        "--input",
+        dest="input_path",
+        type=Path,
+        required=True,
+        metavar="PATH",
+        help="输入 .ralf 文件路径",
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        dest="output_path",
+        type=Path,
+        required=True,
+        metavar="PATH",
+        help="输出 .json 文件路径",
+    )
+    p.add_argument(
+        "-I",
+        dest="include_dirs",
+        type=Path,
+        action="append",
+        default=[],
+        metavar="DIR",
+        help="RALF `source` 搜索目录（可重复，对应该文件目录与显式 -I 列表）",
+    )
+    p.add_argument(
+        "--format",
+        dest="out_format",
+        choices=("flat", "hierarchical"),
+        default="flat",
+        help=(
+            "flat：寄存器扁平列表（path、address、lsb、width）；"
+            "hierarchical：按 block 嵌套，字段名对齐 IP-XACT 常用 JSON 映射"
+            "（baseAddress、addressOffset、size、bitOffset、bitWidth、addressBlocks 等）。"
+        ),
+    )
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _make_parser().parse_args(argv)
+    if args.input_path.suffix.lower() != ".ralf":
+        print("错误: 输入须为 .ralf 文件。", file=sys.stderr)
+        return 2
+    if args.output_path.suffix.lower() != ".json":
+        print("错误: 输出须为 .json 文件。", file=sys.stderr)
+        return 2
+    try:
+        doc = load_ralf_file(
+            args.input_path,
+            include_paths=tuple(args.include_dirs),
+        )
+        if args.out_format == "flat":
+            rows = document_to_register_list(doc)
+            payload = [r.as_mapping() for r in rows]
+        else:
+            forest = document_to_block_forest(doc)
+            payload = [b.as_mapping() for b in forest]
+        args.output_path.parent.mkdir(parents=True, exist_ok=True)
+        args.output_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return 0
+    except (OSError, ValueError, RalfError) as e:
+        print(f"错误: {e}", file=sys.stderr)
+        return 2
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

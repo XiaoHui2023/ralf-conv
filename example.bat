@@ -13,5 +13,7 @@ if errorlevel 1 exit /b 1
 
 if not exist "example\output\" mkdir "example\output"
 
-".venv\Scripts\python.exe" -m ralf_conv.cli -i "%~dp0example\demo_soc.ralf" -o "%~dp0example\output\demo_soc.json"
+".venv\Scripts\python.exe" -m ralf_conv -i "%~dp0example\demo_soc.ralf" -o "%~dp0example\output\demo_soc_flat.json"
+if errorlevel 1 exit /b 1
+".venv\Scripts\python.exe" -m ralf_conv --format hierarchical -i "%~dp0example\demo_soc.ralf" -o "%~dp0example\output\demo_soc_hierarchical.json"
 exit /b %ERRORLEVEL%

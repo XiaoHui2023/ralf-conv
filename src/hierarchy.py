@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from ralf_model.nodes import BlockNode, RalfDocument, RegisterNode
+
+from ralf_conv.field_layout import field_bits_width, field_lsbs
+from ralf_conv.flatten import FieldFlat
+
+
+def _register_size_bits(reg: RegisterNode) -> int:
+    """寄存器位宽：优先 `bytes N`；否则按字段覆盖的最高位向上取整字节再转位。"""
+    if reg.bytes_width is not None and reg.bytes_width > 0:
+        return reg.bytes_width * 8
+    if not reg.fields:
+        return 8
+    lsbs = field_lsbs(reg.fields)
+    tops = [lsbs[i] + field_bits_width(reg.fields[i]) for i in range(len(reg.fields))]
+    max_bit = max(tops)
+    return ((max_bit + 7) // 8) * 8
+
+
+@dataclass
+class RegisterHier:
+    """层次模型中的寄存器；JSON 映射对齐 IP-XACT（spirit:register / spirit:field 常用项）。"""
+
+    name: str
+    offset_bytes: int | None
+    address: int
+    size_bits: int
+    fields: list[FieldFlat] = field(default_factory=list)
+
+    def as_mapping(self) -> dict[str, Any]:
+        off = 0 if self.offset_bytes is None else self.offset_bytes
+        return {
+            "name": self.name,
+            "addressOffset": off,
+            "size": self.size_bits,
+            "absoluteAddress": self.address,
+            "fields": [
+                {"name": ff.name, "bitOffset": ff.lsb, "bitWidth": ff.width}
+                for ff in self.fields
+            ],
+        }
+
+
+@dataclass
+class BlockHier:
+    """保留 RALF block 嵌套；JSON 键与 IP-XACT addressBlock / 寄存器树常见命名兼容。"""
+
+    name: str
+    path: str
+    base_address: int
+    blocks: list[BlockHier] = field(default_factory=list)
+    registers: list[RegisterHier] = field(default_factory=list)
+
+    def as_mapping(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "path": self.path,
+            "baseAddress": self.base_address,
+            "addressUnitBits": 8,
+            "addressBlocks": [b.as_mapping() for b in self.blocks],
+            "registers": [r.as_mapping() for r in self.registers],
+        }
+
+
+def document_to_block_forest(doc: RalfDocument) -> list[BlockHier]:
+    """按 block 树输出：顶层为文档根级 block 列表，内含嵌套 blocks 与 registers（含 fields）。"""
+    return [_block_subtree(b, prefix=(), ancestor_base=0) for b in doc.blocks]
+
+
+def _block_subtree(
+    block: BlockNode,
+    *,
+    prefix: tuple[str, ...],
+    ancestor_base: int,
+) -> BlockHier:
+    scope = prefix + (block.name,)
+    path_str = ".".join(scope)
+    my_base = ancestor_base + (block.base_address or 0)
+
+    registers_out: list[RegisterHier] = []
+    for reg in block.registers:
+        if reg.declaration_only:
+            continue
+        addr = my_base + (reg.offset_bytes or 0)
+        lsbs = field_lsbs(reg.fields)
+        fields_out = [
+            FieldFlat(
+                name=f.name,
+                lsb=lsbs[i],
+                width=field_bits_width(f),
+            )
+            for i, f in enumerate(reg.fields)
+        ]
+        registers_out.append(
+            RegisterHier(
+                name=reg.name,
+                offset_bytes=reg.offset_bytes,
+                address=addr,
+                size_bits=_register_size_bits(reg),
+                fields=fields_out,
+            )
+        )
+
+    blocks_out = [
+        _block_subtree(sub, prefix=scope, ancestor_base=my_base) for sub in block.blocks
+    ]
+    return BlockHier(
+        name=block.name,
+        path=path_str,
+        base_address=my_base,
+        blocks=blocks_out,
+        registers=registers_out,
+    )
