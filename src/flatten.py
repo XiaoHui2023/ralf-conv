@@ -5,7 +5,7 @@ from typing import Any
 
 from ralf_model.nodes import BlockNode, RalfDocument
 
-from ralf_conv.field_layout import field_bits_width, field_lsbs
+from .field_layout import field_bits_width, field_lsbs
 
 
 @dataclass
@@ -31,11 +31,19 @@ class RegisterFlat:
         }
 
 
-def document_to_register_list(doc: RalfDocument) -> list[RegisterFlat]:
-    """将 `ralf_model` 文档树展开为扁平寄存器列表（层次路径 + 绝对字节地址 + 字段）。"""
+def document_to_register_list(
+    doc: RalfDocument,
+    *,
+    base_offset: int = 0,
+) -> list[RegisterFlat]:
+    """将 `ralf_model` 文档树展开为扁平寄存器列表（层次路径 + 绝对字节地址 + 字段）。
+
+    Args:
+        base_offset: 加到所有绝对字节地址上的整体基址偏移。
+    """
     out: list[RegisterFlat] = []
     for root in doc.blocks:
-        _walk_block(root, prefix=(), ancestor_base=0, acc=out)
+        _walk_block(root, prefix=(), ancestor_base=base_offset, acc=out)
     return out
 
 

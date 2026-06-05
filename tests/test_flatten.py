@@ -26,6 +26,25 @@ def test_demo_soc_flatten_addresses_and_paths() -> None:
     assert fields["flags"] == (16, 8)
 
 
+def test_flatten_applies_base_offset() -> None:
+    doc = load_ralf_file(FIXTURE)
+    rows = document_to_register_list(doc, base_offset=0x1000)
+    by_path = {r.path: r for r in rows}
+    assert by_path["demo_soc.CTRL"].address == 0x1000
+    assert by_path["demo_soc.STAT"].address == 0x1010
+    assert by_path["demo_soc.SLOT_A"].address == 0x1100
+
+
+def test_base_offset_adds_to_all_register_addresses() -> None:
+    doc = load_ralf_file(FIXTURE)
+    base = 0x4000_0000
+    rows = document_to_register_list(doc, base_offset=base)
+    by_path = {r.path: r for r in rows}
+    assert by_path["demo_soc.CTRL"].address == base
+    assert by_path["demo_soc.STAT"].address == base + 0x10
+    assert by_path["demo_soc.SLOT_A"].address == base + 0x100
+
+
 def test_stat_implicit_then_explicit_lsbs() -> None:
     doc = load_ralf_file(FIXTURE)
     rows = document_to_register_list(doc)

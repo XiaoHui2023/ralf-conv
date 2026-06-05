@@ -5,8 +5,8 @@ from typing import Any
 
 from ralf_model.nodes import BlockNode, RalfDocument, RegisterNode
 
-from ralf_conv.field_layout import field_bits_width, field_lsbs
-from ralf_conv.flatten import FieldFlat
+from .field_layout import field_bits_width, field_lsbs
+from .flatten import FieldFlat
 
 
 def _register_size_bits(reg: RegisterNode) -> int:
@@ -66,9 +66,19 @@ class BlockHier:
         }
 
 
-def document_to_block_forest(doc: RalfDocument) -> list[BlockHier]:
-    """按 block 树输出：顶层为文档根级 block 列表，内含嵌套 blocks 与 registers（含 fields）。"""
-    return [_block_subtree(b, prefix=(), ancestor_base=0) for b in doc.blocks]
+def document_to_block_forest(
+    doc: RalfDocument,
+    *,
+    base_offset: int = 0,
+) -> list[BlockHier]:
+    """按 block 树输出：顶层为文档根级 block 列表，内含嵌套 blocks 与 registers（含 fields）。
+
+    Args:
+        base_offset: 加到所有 block 基址与寄存器绝对地址上的整体偏移。
+    """
+    return [
+        _block_subtree(b, prefix=(), ancestor_base=base_offset) for b in doc.blocks
+    ]
 
 
 def _block_subtree(

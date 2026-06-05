@@ -11,6 +11,22 @@ from .flatten import document_to_register_list
 from .hierarchy import document_to_block_forest
 
 
+def _parse_byte_offset(text: str) -> int:
+    """解析 CLI 字节偏移：十进制、0x 十六进制或 Verilog 风格 'h/'d 字面量。"""
+    s = text.strip()
+    if not s:
+        raise ValueError("基址偏移不能为空")
+    if s.startswith("'"):
+        body = s[1:]
+        if body and body[0] in "bBdDhHoO":
+            radix = {"b": 2, "B": 2, "d": 10, "D": 10, "h": 16, "H": 16, "o": 8, "O": 8}[
+                body[0]
+            ]
+            return int(body[1:].replace("_", ""), radix)
+        return int(body.replace("_", ""), 0)
+    return int(s.replace("_", ""), 0)
+
+
 def _make_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="ralf-conv",
@@ -21,6 +37,7 @@ def _make_parser() -> argparse.ArgumentParser:
             "  python -m ralf_conv -i chip.ralf -o chip.json\n"
             "  python -m ralf_conv --format hierarchical -i top.ralf -o tree.json\n"
             "  python -m ralf_conv -i top.ralf -o out.json -I ./inc -I ./lib\n"
+            "  python -m ralf_conv -i chip.ralf -o chip.json -b 0x4000_0000\n"
         ),
     )
     p.add_argument(
@@ -61,6 +78,18 @@ def _make_parser() -> argparse.ArgumentParser:
             "（baseAddress、addressOffset、size、bitOffset、bitWidth、addressBlocks 等）。"
         ),
     )
+    p.add_argument(
+        "-b",
+        "--base-offset",
+        dest="base_offset",
+        type=_parse_byte_offset,
+        default=0,
+        metavar="ADDR",
+        help=(
+            "整体基址偏移（字节），加到所有 block 基址与寄存器绝对地址；"
+            "支持十进制、0x 十六进制、Verilog 'h/'d 字面量"
+        ),
+    )
     return p
 
 
@@ -78,10 +107,10 @@ def main(argv: list[str] | None = None) -> int:
             include_paths=tuple(args.include_dirs),
         )
         if args.out_format == "flat":
-            rows = document_to_register_list(doc)
+            rows = document_to_register_list(doc, base_offset=args.base_offset)
             payload = [r.as_mapping() for r in rows]
         else:
-            forest = document_to_block_forest(doc)
+            forest = document_to_block_forest(doc, base_offset=args.base_offset)
             payload = [b.as_mapping() for b in forest]
         args.output_path.parent.mkdir(parents=True, exist_ok=True)
         args.output_path.write_text(

@@ -29,6 +29,17 @@ def test_demo_soc_block_tree_matches_flat_addresses() -> None:
     assert ctrl_fields["mode"] == (8, 4)
 
 
+def test_base_offset_adds_to_block_and_register_addresses() -> None:
+    doc = load_ralf_file(FIXTURE)
+    base = 0x8000_0000
+    forest = document_to_block_forest(doc, base_offset=base)
+    root = forest[0]
+    assert root.base_address == base
+    by_name = {r.name: r for r in root.registers}
+    assert by_name["CTRL"].address == base
+    assert by_name["STAT"].address == base + 0x10
+
+
 def test_nested_blocks_carry_base_and_path() -> None:
     """fixtures 若有嵌套 block，路径与基址应叠加。"""
     # demo_soc 无子 block；仅校验 API 返回类型与字段存在

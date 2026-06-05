@@ -61,6 +61,47 @@ def test_cli_rejects_non_json_output(tmp_path: Path) -> None:
     assert main(["-i", str(FIXTURE_RALF), "-o", str(out)]) == 2
 
 
+def test_cli_base_offset_applied_to_flat_json(tmp_path: Path) -> None:
+    out = tmp_path / "off.json"
+    base = 0x1000
+    assert (
+        main(
+            [
+                "-i",
+                str(FIXTURE_RALF),
+                "-o",
+                str(out),
+                "-b",
+                hex(base),
+            ]
+        )
+        == 0
+    )
+    data = json.loads(out.read_text(encoding="utf-8"))
+    ctrl = next(item for item in data if item.get("path") == "demo_soc.CTRL")
+    assert ctrl["address"] == base
+
+
+def test_cli_base_offset_verilog_hex_literal(tmp_path: Path) -> None:
+    out = tmp_path / "off2.json"
+    assert (
+        main(
+            [
+                "-i",
+                str(FIXTURE_RALF),
+                "-o",
+                str(out),
+                "--base-offset",
+                "'h2000",
+            ]
+        )
+        == 0
+    )
+    data = json.loads(out.read_text(encoding="utf-8"))
+    stat = next(item for item in data if item.get("path") == "demo_soc.STAT")
+    assert stat["address"] == 0x2000 + 0x10
+
+
 def test_cli_pass_include_dirs(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parent / "fixtures" / "include_merge" / "root"
     inc = Path(__file__).resolve().parent / "fixtures" / "include_merge" / "inc"
