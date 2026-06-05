@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # 统一打包：使用仓库根 .venv，先 PyInstaller（主入口 spec），Linux 再 staticx 得到自解压静态包。
+# 每次 pip 对项目与打包工具 --force-reinstall，避免 .venv 残留旧依赖。
 # Windows 仅 PyInstaller（无 staticx）。
 #
 # 用法（仓库根）：./tools/pack.sh [src]（Windows 批处理见 tools/pack.bat）
@@ -50,7 +51,7 @@ apply_staticx_linux() {
     echo "错误: Linux 下 staticx 需要系统命令 patchelf（例如: sudo apt install patchelf）。" >&2
     exit 1
   fi
-  "${PYTHON_CMD[@]}" -m pip install -q staticx
+  "${PYTHON_CMD[@]}" -m pip install -q --upgrade --force-reinstall staticx
   local staticx="$ROOT/.venv/bin/staticx"
   if [[ ! -x "$staticx" ]]; then
     echo "错误: 未找到可执行的 .venv/bin/staticx。" >&2
@@ -91,8 +92,8 @@ build_cli() {
 ensure_venv
 
 "${PYTHON_CMD[@]}" -m pip install -q -U pip setuptools wheel
-"${PYTHON_CMD[@]}" -m pip install -q -e .
-"${PYTHON_CMD[@]}" -m pip install -q "pyinstaller>=6.0"
+"${PYTHON_CMD[@]}" -m pip install -q --upgrade --force-reinstall -e .
+"${PYTHON_CMD[@]}" -m pip install -q --upgrade --force-reinstall "pyinstaller>=6.0"
 
 rm -rf "$ROOT/build" "$ROOT/dist"
 

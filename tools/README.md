@@ -2,7 +2,7 @@
 
 ## 一键打包（PyInstaller；Linux 再 staticx）
 
-在仓库根执行（使用根目录 `.venv`，无则创建）：
+在仓库根执行（使用根目录 `.venv`，无则创建）。每次打包会 `--force-reinstall` 重装 `pyproject.toml` 依赖与 PyInstaller，避免 `.venv` 残留旧版依赖。
 
 ### Linux / macOS / Git Bash
 

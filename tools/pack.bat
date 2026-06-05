@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions
 rem 统一打包：使用仓库根 .venv，PyInstaller onefile（Windows 无 staticx）。
+rem 每次 pip 对项目与打包工具 --force-reinstall，避免 .venv 残留旧依赖。
 rem 用法（仓库根）：tools\pack.bat [src]
 cd /d "%~dp0\.."
 
@@ -27,9 +28,9 @@ echo ==^> 使用虚拟环境: %PY%
 
 "%PY%" -m pip install -q -U pip setuptools wheel
 if errorlevel 1 exit /b 1
-"%PY%" -m pip install -q -e .
+"%PY%" -m pip install -q --upgrade --force-reinstall -e .
 if errorlevel 1 exit /b 1
-"%PY%" -m pip install -q "pyinstaller>=6.0"
+"%PY%" -m pip install -q --upgrade --force-reinstall "pyinstaller>=6.0"
 if errorlevel 1 exit /b 1
 
 if /I not "%TARGET%"=="src" (

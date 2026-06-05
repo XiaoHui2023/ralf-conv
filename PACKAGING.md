@@ -16,7 +16,7 @@
 tools\pack.bat
 ```
 
-脚本会创建或复用根目录 `.venv`，执行 `pip install -e .` 安装项目依赖，再调用 PyInstaller。详细参数见 [tools/README.md](tools/README.md)。
+脚本会创建或复用根目录 `.venv`，每次以 `pip install --upgrade --force-reinstall -e .` 重装项目及其依赖（含 `python-library-ralf-model`），再调用 PyInstaller。详细参数见 [tools/README.md](tools/README.md)。
 
 | 命令 | 产物（`dist/`） |
 | --- | --- |
