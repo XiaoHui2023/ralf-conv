@@ -1,0 +1,22 @@
+system demo_chip {
+  system demo_soc @0 {
+    block regs {
+      bytes 4;
+
+      register CTRL @0 {
+        bytes 4;
+        field ena {}
+        field mode @8 {
+          bits 4;
+        }
+      }
+
+      register STAT @'h10 {
+        bytes 4;
+        field cnt @0 {
+          bits 16;
+        }
+      }
+    }
+  }
+}

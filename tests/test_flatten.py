@@ -45,6 +45,15 @@ def test_base_offset_adds_to_all_register_addresses() -> None:
     assert by_path["demo_soc.SLOT_A"].address == base + 0x100
 
 
+def test_system_prefix_in_flat_paths() -> None:
+    fixture = Path(__file__).resolve().parent / "fixtures" / "demo_system.ralf"
+    doc = load_ralf_file(fixture)
+    rows = document_to_register_list(doc)
+    by_path = {r.path: r for r in rows}
+    assert by_path["demo_chip.demo_soc.regs.CTRL"].address == 0
+    assert by_path["demo_chip.demo_soc.regs.STAT"].address == 0x10
+
+
 def test_stat_implicit_then_explicit_lsbs() -> None:
     doc = load_ralf_file(FIXTURE)
     rows = document_to_register_list(doc)

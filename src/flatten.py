@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ralf_model.nodes import BlockNode, RalfDocument
+from ralf_model.nodes import BlockNode, RalfDocument, SystemNode
 
 from .field_layout import field_bits_width, field_lsbs
 
@@ -51,9 +51,26 @@ def document_to_register_list(
         base_offset: 加到所有绝对字节地址上的整体基址偏移。
     """
     out: list[RegisterFlat] = []
+    for root in doc.systems:
+        _walk_system(root, prefix=(), ancestor_base=base_offset, acc=out)
     for root in doc.blocks:
         _walk_block(root, prefix=(), ancestor_base=base_offset, acc=out)
     return out
+
+
+def _walk_system(
+    system: SystemNode,
+    *,
+    prefix: tuple[str, ...],
+    ancestor_base: int,
+    acc: list[RegisterFlat],
+) -> None:
+    scope = prefix + (system.name,)
+    my_base = ancestor_base + (system.base_address or 0)
+    for sub in system.systems:
+        _walk_system(sub, prefix=scope, ancestor_base=my_base, acc=acc)
+    for block in system.blocks:
+        _walk_block(block, prefix=scope, ancestor_base=my_base, acc=acc)
 
 
 def _walk_block(

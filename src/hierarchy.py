@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ralf_model.nodes import BlockNode, RalfDocument, RegisterNode
+from ralf_model.nodes import BlockNode, RalfDocument, RegisterNode, SystemNode
 
 from .field_layout import field_bits_width, field_lsbs
 from .flatten import FieldFlat
@@ -57,6 +57,27 @@ class RegisterHier:
 
 
 @dataclass
+class SystemHier:
+    """保留 RALF system 嵌套；体内可含子 system 与 block。"""
+
+    name: str
+    path: str
+    base_address: int
+    systems: list[SystemHier] = field(default_factory=list)
+    blocks: list[BlockHier] = field(default_factory=list)
+
+    def as_mapping(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "path": self.path,
+            "baseAddress": self.base_address,
+            "addressUnitBits": 8,
+            "systems": [s.as_mapping() for s in self.systems],
+            "addressBlocks": [b.as_mapping() for b in self.blocks],
+        }
+
+
+@dataclass
 class BlockHier:
     """保留 RALF block 嵌套；JSON 键与 IP-XACT addressBlock / 寄存器树常见命名兼容。"""
 
@@ -81,15 +102,45 @@ def document_to_block_forest(
     doc: RalfDocument,
     *,
     base_offset: int = 0,
-) -> list[BlockHier]:
-    """按 block 树输出：顶层为文档根级 block 列表，内含嵌套 blocks 与 registers（含 fields）。
+) -> list[SystemHier | BlockHier]:
+    """按 system / block 树输出：顶层为文档根级列表，内含嵌套与 registers（含 fields）。
 
     Args:
-        base_offset: 加到所有 block 基址与寄存器绝对地址上的整体偏移。
+        base_offset: 加到所有基址与寄存器绝对地址上的整体偏移。
     """
-    return [
-        _block_subtree(b, prefix=(), ancestor_base=base_offset) for b in doc.blocks
+    out: list[SystemHier | BlockHier] = [
+        _system_subtree(s, prefix=(), ancestor_base=base_offset) for s in doc.systems
     ]
+    out.extend(
+        _block_subtree(b, prefix=(), ancestor_base=base_offset) for b in doc.blocks
+    )
+    return out
+
+
+def _system_subtree(
+    system: SystemNode,
+    *,
+    prefix: tuple[str, ...],
+    ancestor_base: int,
+) -> SystemHier:
+    scope = prefix + (system.name,)
+    path_str = ".".join(scope)
+    my_base = ancestor_base + (system.base_address or 0)
+    systems_out = [
+        _system_subtree(sub, prefix=scope, ancestor_base=my_base)
+        for sub in system.systems
+    ]
+    blocks_out = [
+        _block_subtree(sub, prefix=scope, ancestor_base=my_base)
+        for sub in system.blocks
+    ]
+    return SystemHier(
+        name=system.name,
+        path=path_str,
+        base_address=my_base,
+        systems=systems_out,
+        blocks=blocks_out,
+    )
 
 
 def _block_subtree(
