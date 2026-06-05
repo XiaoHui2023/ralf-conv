@@ -30,19 +30,30 @@ class RegisterHier:
     address: int
     size_bits: int
     fields: list[FieldFlat] = field(default_factory=list)
+    hdl_path: str | None = None
 
     def as_mapping(self) -> dict[str, Any]:
         off = 0 if self.offset_bytes is None else self.offset_bytes
-        return {
+        fields_json: list[dict[str, Any]] = []
+        for ff in self.fields:
+            fd: dict[str, Any] = {
+                "name": ff.name,
+                "bitOffset": ff.lsb,
+                "bitWidth": ff.width,
+            }
+            if ff.hdl_path is not None:
+                fd["hdlPath"] = ff.hdl_path
+            fields_json.append(fd)
+        m: dict[str, Any] = {
             "name": self.name,
             "addressOffset": off,
             "size": self.size_bits,
             "absoluteAddress": self.address,
-            "fields": [
-                {"name": ff.name, "bitOffset": ff.lsb, "bitWidth": ff.width}
-                for ff in self.fields
-            ],
+            "fields": fields_json,
         }
+        if self.hdl_path is not None:
+            m["hdlPath"] = self.hdl_path
+        return m
 
 
 @dataclass
@@ -102,6 +113,7 @@ def _block_subtree(
                 name=f.name,
                 lsb=lsbs[i],
                 width=field_bits_width(f),
+                hdl_path=f.paren_path,
             )
             for i, f in enumerate(reg.fields)
         ]
@@ -112,6 +124,7 @@ def _block_subtree(
                 address=addr,
                 size_bits=_register_size_bits(reg),
                 fields=fields_out,
+                hdl_path=reg.paren_path,
             )
         )
 

@@ -7,7 +7,7 @@ name = "ralf-conv"
 version = "0.0.0"
 description = "使用 ralf_model 将 RALF 解析并展开为扁平寄存器 JSON"
 requires-python = ">=3.10"
-dependencies = ["python-library-ralf-model==0.1.1"]
+dependencies = ["python-library-ralf-model==0.1.2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]

@@ -13,6 +13,13 @@ class FieldFlat:
     name: str
     lsb: int
     width: int
+    hdl_path: str | None = None
+
+    def as_mapping(self) -> dict[str, Any]:
+        m: dict[str, Any] = {"name": self.name, "lsb": self.lsb, "width": self.width}
+        if self.hdl_path is not None:
+            m["hdlPath"] = self.hdl_path
+        return m
 
 
 @dataclass
@@ -20,15 +27,17 @@ class RegisterFlat:
     path: str
     address: int
     fields: list[FieldFlat] = field(default_factory=list)
+    hdl_path: str | None = None
 
     def as_mapping(self) -> dict[str, Any]:
-        return {
+        m: dict[str, Any] = {
             "path": self.path,
             "address": self.address,
-            "fields": [
-                {"name": ff.name, "lsb": ff.lsb, "width": ff.width} for ff in self.fields
-            ],
+            "fields": [ff.as_mapping() for ff in self.fields],
         }
+        if self.hdl_path is not None:
+            m["hdlPath"] = self.hdl_path
+        return m
 
 
 def document_to_register_list(
@@ -68,10 +77,18 @@ def _walk_block(
                 name=f.name,
                 lsb=lsbs[i],
                 width=field_bits_width(f),
+                hdl_path=f.paren_path,
             )
             for i, f in enumerate(reg.fields)
         ]
-        acc.append(RegisterFlat(path=path_str, address=addr, fields=fields_out))
+        acc.append(
+            RegisterFlat(
+                path=path_str,
+                address=addr,
+                fields=fields_out,
+                hdl_path=reg.paren_path,
+            )
+        )
 
     for sub in block.blocks:
         _walk_block(sub, prefix=scope, ancestor_base=my_base, acc=acc)
