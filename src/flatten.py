@@ -13,13 +13,9 @@ class FieldFlat:
     name: str
     lsb: int
     width: int
-    hdl_path: str | None = None
 
     def as_mapping(self) -> dict[str, Any]:
-        m: dict[str, Any] = {"name": self.name, "lsb": self.lsb, "width": self.width}
-        if self.hdl_path is not None:
-            m["hdlPath"] = self.hdl_path
-        return m
+        return {"name": self.name, "lsb": self.lsb, "width": self.width}
 
 
 @dataclass
@@ -27,17 +23,13 @@ class RegisterFlat:
     path: str
     address: int
     fields: list[FieldFlat] = field(default_factory=list)
-    hdl_path: str | None = None
 
     def as_mapping(self) -> dict[str, Any]:
-        m: dict[str, Any] = {
+        return {
             "path": self.path,
             "address": self.address,
             "fields": [ff.as_mapping() for ff in self.fields],
         }
-        if self.hdl_path is not None:
-            m["hdlPath"] = self.hdl_path
-        return m
 
 
 def document_to_register_list(
@@ -94,7 +86,6 @@ def _walk_block(
                 name=f.name,
                 lsb=lsbs[i],
                 width=field_bits_width(f),
-                hdl_path=f.paren_path,
             )
             for i, f in enumerate(reg.fields)
         ]
@@ -103,7 +94,6 @@ def _walk_block(
                 path=path_str,
                 address=addr,
                 fields=fields_out,
-                hdl_path=reg.paren_path,
             )
         )
 
