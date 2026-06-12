@@ -8,6 +8,15 @@ from ralf_conv.__main__ import main
 FIXTURE_RALF = Path(__file__).resolve().parent / "fixtures" / "demo_soc.ralf"
 
 
+def test_cli_prints_flat_json_to_stdout(capsys) -> None:
+    assert main(["-i", str(FIXTURE_RALF)]) == 0
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
+    assert isinstance(data, list)
+    assert any(item.get("path") == "demo_soc.CTRL" for item in data)
+    assert captured.err == ""
+
+
 def test_cli_writes_flat_json(tmp_path: Path) -> None:
     out = tmp_path / "out.json"
     assert main(["-i", str(FIXTURE_RALF), "-o", str(out)]) == 0

@@ -34,6 +34,7 @@ def _make_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "示例:\n"
+            "  python -m ralf_conv -i chip.ralf\n"
             "  python -m ralf_conv -i chip.ralf -o chip.json\n"
             "  python -m ralf_conv --format hierarchical -i top.ralf -o tree.json\n"
             "  python -m ralf_conv -i top.ralf -o out.json -I ./inc -I ./lib\n"
@@ -54,9 +55,9 @@ def _make_parser() -> argparse.ArgumentParser:
         "--output",
         dest="output_path",
         type=Path,
-        required=True,
+        default=None,
         metavar="PATH",
-        help="输出 .json 文件路径",
+        help="输出 .json 文件路径；省略则打印到标准输出",
     )
     p.add_argument(
         "-I",
@@ -98,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.input_path.suffix.lower() != ".ralf":
         print("错误: 输入须为 .ralf 文件。", file=sys.stderr)
         return 2
-    if args.output_path.suffix.lower() != ".json":
+    if args.output_path is not None and args.output_path.suffix.lower() != ".json":
         print("错误: 输出须为 .json 文件。", file=sys.stderr)
         return 2
     try:
@@ -112,11 +113,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             forest = document_to_block_forest(doc, base_offset=args.base_offset)
             payload = [b.as_mapping() for b in forest]
-        args.output_path.parent.mkdir(parents=True, exist_ok=True)
-        args.output_path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        if args.output_path is None:
+            print(text)
+        else:
+            args.output_path.parent.mkdir(parents=True, exist_ok=True)
+            args.output_path.write_text(text, encoding="utf-8")
         return 0
     except (OSError, ValueError, RalfError) as e:
         print(f"错误: {e}", file=sys.stderr)
