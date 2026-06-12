@@ -1,9 +1,8 @@
 @echo off
 setlocal EnableExtensions
-rem 统一打包：使用仓库根 .venv，PyInstaller onefile（Windows 无 staticx）。
-rem 每次 pip 对项目与打包工具 --force-reinstall，避免 .venv 残留旧依赖。
-rem 用法（仓库根）：tools\pack.bat [src]
-rem 产物：dist\ralf-conv.exe；另有 dist\ralf-conv-<version>-windows.zip（见 tools\bundle_release.py）。
+rem Pack onefile via PyInstaller; no staticx on Windows. See PACKAGING.md.
+rem Usage from repo root: tools\pack.bat [src]
+rem Outputs: dist\ralf-conv.exe and dist\ralf-conv-<version>-windows.zip
 cd /d "%~dp0\.."
 
 set "TARGET=%~1"
