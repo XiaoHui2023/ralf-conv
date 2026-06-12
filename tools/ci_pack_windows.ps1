@@ -3,9 +3,9 @@ $ErrorActionPreference = "Stop"
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
 if (-not (Test-Path ".venv\Scripts\python.exe")) {
-    py -3 -m venv .venv
+    python -m venv .venv
     if ($LASTEXITCODE -ne 0) {
-        python -m venv .venv
+        py -3 -m venv .venv
     }
 }
 
