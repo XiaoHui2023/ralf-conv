@@ -19,10 +19,10 @@ cd "$ROOT"
 TARGET="${1:-src}"
 
 ensure_venv() {
-  if [[ -f "$ROOT/.venv/Scripts/python.exe" ]]; then
-    PYTHON_CMD=("$ROOT/.venv/Scripts/python.exe")
-  elif [[ -f "$ROOT/.venv/bin/python" ]]; then
+  if [[ -f "$ROOT/.venv/bin/python" ]]; then
     PYTHON_CMD=("$ROOT/.venv/bin/python")
+  elif [[ -f "$ROOT/.venv/Scripts/python.exe" ]]; then
+    PYTHON_CMD=("$ROOT/.venv/Scripts/python.exe")
   else
     echo "未找到 .venv，正在创建 ..."
     case "$(uname -s 2>/dev/null || true)" in
