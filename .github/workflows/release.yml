@@ -78,13 +78,6 @@ jobs:
           name: ralf-conv-linux-ubuntu16
           path: release-assets
 
-      - name: Download Windows artifact
-        if: needs.build-windows.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: ralf-conv-windows
-          path: release-assets
-
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
