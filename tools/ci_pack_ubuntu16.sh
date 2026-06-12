@@ -12,7 +12,8 @@ rm -rf .venv build dist
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl patchelf bzip2
+apt-get install -y --no-install-recommends \
+  ca-certificates curl patchelf bzip2 binutils
 
 MINICONDA_SH="Miniconda3-py310_23.5.2-0-Linux-x86_64.sh"
 curl -fsSL "https://repo.anaconda.com/miniconda/${MINICONDA_SH}" -o /tmp/miniconda.sh
