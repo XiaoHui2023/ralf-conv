@@ -3,6 +3,7 @@ setlocal EnableExtensions
 rem 统一打包：使用仓库根 .venv，PyInstaller onefile（Windows 无 staticx）。
 rem 每次 pip 对项目与打包工具 --force-reinstall，避免 .venv 残留旧依赖。
 rem 用法（仓库根）：tools\pack.bat [src]
+rem 产物：dist\ralf-conv.exe；另有 dist\ralf-conv-<version>-windows.zip（见 tools\bundle_release.py）。
 cd /d "%~dp0\.."
 
 set "TARGET=%~1"
@@ -57,6 +58,10 @@ if exist "%CD%\dist\ralf-conv.exe" (
     echo 错误: 未在 dist 找到 ralf-conv.exe。 >&2
     exit /b 1
 )
+
+echo ==^> 组装发布压缩包
+"%PY%" tools\bundle_release.py
+if errorlevel 1 exit /b 1
 
 echo PyInstaller 输出目录: %CD%\dist
 exit /b 0

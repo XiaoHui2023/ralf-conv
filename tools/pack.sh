@@ -3,8 +3,14 @@
 # 每次 pip 对项目与打包工具 --force-reinstall，避免 .venv 残留旧依赖。
 # Windows 仅 PyInstaller（无 staticx）。
 #
-# 用法（仓库根）：./tools/pack.sh [src]（Windows 批处理见 tools/pack.bat）
-# Linux 另需系统包 patchelf（如 apt install patchelf）。
+# 用法（仓库根）：
+#   ./tools/pack.sh [src]     Linux / macOS / Git Bash
+#   bash tools/pack.sh [src]  同上
+# 产物：dist/ralf-conv（Linux 经 staticx）或 dist/ralf-conv.exe（Windows）；
+#       另有 dist/ralf-conv-<version>-<platform>.tar.gz 或 .zip（示例 RALF 见 tools/bundle_release.py）。
+# Linux staticx 另需系统 patchelf（如 apt install patchelf）；macOS 跳过 staticx。
+# 兼容：单文件 ABI 取决于构建机 glibc；Ubuntu 16.04 须在 16.04（或更旧 glibc）环境构建并实测。
+# Windows 批处理见 tools/pack.bat。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -100,6 +106,8 @@ rm -rf "$ROOT/build" "$ROOT/dist"
 case "$TARGET" in
   src|"")
     build_cli
+    echo "==> 组装发布压缩包"
+    "${PYTHON_CMD[@]}" "$ROOT/tools/bundle_release.py"
     ;;
   *)
     echo "用法: ./tools/pack.sh [src]" >&2

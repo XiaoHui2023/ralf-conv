@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux-ubuntu16:
+    name: Linux (Ubuntu 16.04 + staticx)
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git patchelf bzip2
+          curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh
+          bash /tmp/miniconda.sh -b -p /opt/miniconda
+          /opt/miniconda/bin/conda create -y -n py310 python=3.10 pip
+          /opt/miniconda/bin/conda run -n py310 python -m venv .venv
+
+      - name: Pack (PyInstaller + staticx)
+        shell: bash
+        run: bash tools/pack.sh src
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ralf-conv-linux-ubuntu16
+          path: |
+            dist/ralf-conv
+            dist/ralf-conv-*.tar.gz
+          if-no-files-found: error
+
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pack (PyInstaller)
+        shell: cmd
+        run: tools\pack.bat src
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ralf-conv-windows
+          path: |
+            dist/ralf-conv.exe
+            dist/ralf-conv-*.zip
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs:
+      - build-linux-ubuntu16
+      - build-windows
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/**
+          generate_release_notes: true

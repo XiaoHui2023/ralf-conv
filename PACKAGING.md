@@ -20,10 +20,22 @@ tools\pack.bat
 
 | 命令 | 产物（`dist/`） |
 | --- | --- |
-| `./tools/pack.sh` 或 `src` | `ralf-conv` |
-| `tools\pack.bat` 或 `src` | `ralf-conv.exe` |
+| `./tools/pack.sh` 或 `src` | `ralf-conv`、`ralf-conv-<version>-linux.tar.gz` |
+| `tools\pack.bat` 或 `src` | `ralf-conv.exe`、`ralf-conv-<version>-windows.zip` |
+
+压缩包内除可执行体外含 `example/demo_soc.ralf` 示例；清单见 `tools/bundle_release.py`。
 
 Windows 产物为 `*.exe`，无 staticx 步骤。
+
+## GitHub 自动构建与下载
+
+推送 `v*` 标签（如 `v0.1.0`）时，GitHub Actions 会：
+
+1. 在 **Ubuntu 16.04** 容器内执行 `tools/pack.sh`（PyInstaller + staticx），生成可在旧 glibc 环境运行的 Linux 单文件；
+2. 在 **Windows** 上执行 `tools/pack.bat`；
+3. 将 `ralf-conv-*.tar.gz` 与 `ralf-conv-*.zip` 上传到该版本的 **GitHub Release**。
+
+未打标签时，可在仓库 **Actions → Release → Run workflow** 手动触发；产物在对应运行的 **Artifacts** 中下载。
 
 ## Linux staticx
 
