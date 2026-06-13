@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -73,12 +73,26 @@ jobs:
     needs:
       - build-linux-ubuntu16
       - build-windows
-    if: >-
-      always() &&
-      startsWith(github.ref, 'refs/tags/') &&
-      needs.build-linux-ubuntu16.result == 'success'
+    if: always() && needs.build-linux-ubuntu16.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: ver
+        shell: bash
+        run: |
+          VERSION=$(python -c "import re; t=open('pyproject.toml', encoding='utf-8').read(); m=re.search(r'(?m)^version\s*=\s*[\"\\']([^\"\\']+)[\"\\']', t); print(m.group(1) if m else '')")
+          if [ -z "$VERSION" ]; then
+            echo "version not found in pyproject.toml" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
         with:
@@ -92,9 +106,22 @@ jobs:
           name: ralf-conv-windows
           path: release-assets
 
-      - name: Create release
+      - name: Point release tag at this commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -fa "${{ steps.ver.outputs.tag }}" -m "Release ${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}" --force
+
+      - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Release ${{ steps.ver.outputs.tag }}
+          body: |
+            滚动发版：产物来自触发本次 workflow 的 main 提交。
+            版本号见 pyproject.toml 与附件文件名；仅当用户明确要求时才递增版本。
+          generate_release_notes: false
           files: release-assets/**
-          generate_release_notes: true
           fail_on_unmatched_files: true

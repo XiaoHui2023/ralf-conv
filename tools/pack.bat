@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-rem Pack onefile via PyInstaller; no staticx on Windows. See PACKAGING.md.
+rem Pack onefile via PyInstaller; no staticx on Windows. See tools/README.md.
 rem Usage from repo root: tools\pack.bat [src]
 rem Outputs: dist\ralf-conv.exe and dist\ralf-conv-<version>-windows.zip
 cd /d "%~dp0\.."

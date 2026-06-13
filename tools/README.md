@@ -30,5 +30,3 @@ tools\pack.bat
 | Linux | `pack.sh` | 需要系统 **patchelf** |
 | macOS 等 | `pack.sh` | 跳过 |
 | Windows | `pack.bat` / `pack.sh` | 跳过 |
-
-更完整的说明见仓库根目录 [PACKAGING.md](../PACKAGING.md)。
