@@ -40,6 +40,9 @@ jobs:
     name: Windows
     runs-on: windows-latest
     continue-on-error: true
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: "1"
     outputs:
       packed: ${{ steps.pack.outcome == 'success' }}
     steps:
@@ -53,8 +56,8 @@ jobs:
 
       - name: Pack (PyInstaller)
         id: pack
-        shell: pwsh
-        run: ./tools/ci_pack_windows.ps1
+        shell: cmd
+        run: call tools\ci_pack_windows.bat
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

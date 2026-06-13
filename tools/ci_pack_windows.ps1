@@ -1,7 +1,5 @@
 # CI helper: pack ralf-conv on Windows (PyInstaller onefile + release zip).
-# Uses setup-python on GitHub Actions; no nested .venv (avoids editable/PyInstaller issues).
-$ErrorActionPreference = "Stop"
-# pip/PyInstaller write progress to stderr; do not treat as terminating errors on GHA pwsh.
+# Uses setup-python on GitHub Actions; no nested .venv.
 $PSNativeCommandUseErrorActionPreference = $false
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
@@ -11,18 +9,23 @@ foreach ($dir in @(".venv", "build", "dist")) {
     }
 }
 
-python -V
-python -m pip install -U pip setuptools wheel
-python -m pip install .
-python -m pip install "pyinstaller>=6.0" tzdata
+function Invoke-Native {
+    param([Parameter(Mandatory)][string[]]$Command)
+    & @Command
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
 
-python -m PyInstaller --clean --noconfirm "ralf-conv-cli.spec"
+Invoke-Native python,-V
+Invoke-Native python,-m,pip,install,-U,pip,setuptools,wheel
+Invoke-Native python,-m,pip,install,.
+Invoke-Native python,-m,pip,install,"pyinstaller>=6.0",tzdata
+Invoke-Native python,-m,PyInstaller,--clean,--noconfirm,ralf-conv-cli.spec
+
 if (-not (Test-Path "dist\ralf-conv.exe")) {
-    throw "dist\ralf-conv.exe not found after PyInstaller"
+    Write-Error "dist\ralf-conv.exe not found after PyInstaller"
+    exit 1
 }
 
-python tools\bundle_release.py
-$zip = Get-ChildItem "dist\ralf-conv-*-windows.zip" -ErrorAction Stop | Select-Object -First 1
-if (-not $zip) {
-    throw "dist\ralf-conv-*-windows.zip not found after bundle_release"
-}
+Invoke-Native python,tools\bundle_release.py
