@@ -39,6 +39,7 @@ jobs:
   build-windows:
     name: Windows
     runs-on: windows-latest
+    continue-on-error: true
     outputs:
       packed: ${{ steps.pack.outcome == 'success' }}
     steps:
@@ -70,6 +71,7 @@ jobs:
       - build-linux-ubuntu16
       - build-windows
     if: >-
+      always() &&
       startsWith(github.ref, 'refs/tags/') &&
       needs.build-linux-ubuntu16.result == 'success'
     runs-on: ubuntu-latest

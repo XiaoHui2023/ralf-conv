@@ -1,6 +1,8 @@
 # CI helper: pack ralf-conv on Windows (PyInstaller onefile + release zip).
 # Uses setup-python on GitHub Actions; no nested .venv (avoids editable/PyInstaller issues).
 $ErrorActionPreference = "Stop"
+# pip/PyInstaller write progress to stderr; do not treat as terminating errors on GHA pwsh.
+$PSNativeCommandUseErrorActionPreference = $false
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
 foreach ($dir in @(".venv", "build", "dist")) {
