@@ -39,7 +39,8 @@ jobs:
   build-windows:
     name: Windows
     runs-on: windows-latest
-    continue-on-error: true
+    outputs:
+      packed: ${{ steps.pack.outcome == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,8 +51,9 @@ jobs:
           python-version: "3.11"
 
       - name: Pack (PyInstaller)
-        shell: cmd
-        run: tools\ci_pack_windows.bat
+        id: pack
+        shell: pwsh
+        run: ./tools/ci_pack_windows.ps1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -76,6 +78,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ralf-conv-linux-ubuntu16
+          path: release-assets
+
+      - name: Download Windows artifact
+        if: needs.build-windows.outputs.packed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ralf-conv-windows
           path: release-assets
 
       - name: Create release

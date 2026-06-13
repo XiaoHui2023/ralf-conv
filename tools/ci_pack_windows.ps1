@@ -1,29 +1,26 @@
 # CI helper: pack ralf-conv on Windows (PyInstaller onefile + release zip).
+# Uses setup-python on GitHub Actions; no nested .venv (avoids editable/PyInstaller issues).
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
-if (-not (Test-Path ".venv\Scripts\python.exe")) {
-    python -m venv .venv
-    if ($LASTEXITCODE -ne 0) {
-        py -3 -m venv .venv
+foreach ($dir in @(".venv", "build", "dist")) {
+    if (Test-Path $dir) {
+        Remove-Item -Recurse -Force $dir
     }
 }
 
-$py = Join-Path (Get-Location) ".venv\Scripts\python.exe"
-if (-not (Test-Path $py)) {
-    throw "venv python not found: $py"
-}
+python -V
+python -m pip install -U pip setuptools wheel
+python -m pip install .
+python -m pip install "pyinstaller>=6.0" tzdata
 
-& $py -m pip install -U pip setuptools wheel
-& $py -m pip install --upgrade --force-reinstall -e .
-& $py -m pip install --upgrade --force-reinstall "pyinstaller>=6.0"
-
-if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
-
-& $py -m PyInstaller --clean --noconfirm "ralf-conv-cli.spec"
+python -m PyInstaller --clean --noconfirm "ralf-conv-cli.spec"
 if (-not (Test-Path "dist\ralf-conv.exe")) {
     throw "dist\ralf-conv.exe not found after PyInstaller"
 }
 
-& $py tools\bundle_release.py
+python tools\bundle_release.py
+$zip = Get-ChildItem "dist\ralf-conv-*-windows.zip" -ErrorAction Stop | Select-Object -First 1
+if (-not $zip) {
+    throw "dist\ralf-conv-*-windows.zip not found after bundle_release"
+}
